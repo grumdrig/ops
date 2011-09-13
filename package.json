@@ -2,5 +2,7 @@
   "name": "rpgops",
   "version": "0.0.1",
   "dependencies": {
+    "dnode": "0.8.2",
+    "express": "2.4.6"
   }
 }

@@ -3,38 +3,47 @@
 <script src="https://browserid.org/include.js"></script>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js">
   </script>
+<script src="/dnode.js" type="text/javascript"></script>
 <script>
   
 $(function() {
-    $("login").click(login);
+    $("#login").click(login);
   });
+
 
 var login = function () {
   navigator.id.getVerifiedEmail(function (assertion) {
       if (assertion) {
         // This code will be invoked once the user has successfully
         // selected an email address they control to sign in with.
-        rpc("signin", {assertion: assertion}, function(cred) {
-            if (cred.status == "okay") {
-              $("whom").text(cred.email);
-            } else {
-              $("whom").text(cred.status);
-            }
-          }, function (err) {
-            $("whom").text("RPC failed");
+        DNode.connect(function (remote) {
+            remote.signin(assertion, function(cred) {
+                if (cred.status == "okay") {
+                  $("#whom").text(cred.email);
+                  $("#reason").text("");
+                } else {
+                  $("#whom").text(cred.status);
+                  $("#reason").text(cred.reason);
+                }
+              }, function (err) {
+                $("#whom").text("RPC failed");
+              });
           });
       } else {
         // something went wrong!  the user isn't logged in.
-        $("whom").text("Nobody.");
+        $("#whom").text("Nobody.");
       }
     });
-});
+};
 
 
 </script>
 </head>
 
 <body>
-<h1 id=whom>Who are you?</whom>
-<img src="https://browserid.org/i/sign_in_red.png" alt="Sign in" id="login">
+<h1 id=whom>Who are you?</h1>
+<p id=reason></p>
+<button  id="login">
+<img src="https://browserid.org/i/sign_in_red.png" alt="Sign in">
+</button>
 </body>
