@@ -1,0 +1,3 @@
+[submodule "woses"]
+	path = woses
+	url = git@github.com:grumdrig/woses
