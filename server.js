@@ -5,6 +5,57 @@ var server = express.createServer();
 
 server.use(express.static(__dirname));
 
+SESSIONS = {}
+
+dnode(function (client, connection) {
+
+    connection.on('request', function (req) {
+        console.log("REQUEST");
+      });
+    
+    connection.on('ready', function () {
+        console.log("CLIENT");
+        console.dir(client);
+        console.log("CONN");
+        console.dir(''+connection);
+      });
+
+    this.resumeSession = function (id) {
+      if (SESSIONS[id]) {
+        connection.session = id;
+        client.session(id, SESSIONS[id]);
+      } else {
+        client.noSession("You need to sign on in");
+      }
+    };
+
+    this.verify = function (assertion, callback) {
+      verify_identity(assertion, function(response) {
+          if (response.status == "okay") {
+            // Look up user id
+            var hash = require("crypto").createHash("sha256");
+            hash.update("secret that doesn't belong on github");
+            hash.update(response.email);
+            hash.update(''+Math.random()); // >:(
+            connection.session = hash.digest('base64');
+            SESSIONS[connection.session] = response.email;
+            client.session(connection.session, response.email);
+            console.log("Identity verified", connection.session, response.email);
+          } else {
+            client.noSession("That's not legit");
+          }
+        });
+    };
+
+    this.signout = function () {
+      delete SESSIONS[connection.session];
+      client.noSession("Signed out");
+    }
+
+  }).listen(server);
+
+
+
 
 function verify_identity(assertion, callback) {
   var querystring = require('querystring');
@@ -36,7 +87,6 @@ function verify_identity(assertion, callback) {
           resp_body += chunk;
         });
       res.on('end', function () {
-          console.log("VIend\n");
           callback(JSON.parse(resp_body));
         });
     });
@@ -48,13 +98,6 @@ function verify_identity(assertion, callback) {
 
   req.end(data);
 }
-
-
-dnode(function (client) {
-    this.signin = function (assertion, callback) {
-      verify_identity(assertion, callback);
-    };
-  }).listen(server);
 
 
 var port = 9095;

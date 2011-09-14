@@ -6,44 +6,66 @@
 <script src="/dnode.js" type="text/javascript"></script>
 <script>
   
-$(function() {
-    $("#login").click(login);
-  });
+var SESSIONID;
 
+DNode({
+    
+    noSession: function (complaint) {
+      $('#signin').show();
+      $('#signout').hide();
+      $('#whom').text(complaint || "You need to sign in, pal");
+    },
+      
+    session : function (id, email) {
+      $('#signout').show();
+      $('#signin :visible').slideUp();
+      $('#whom').text(email);
+      SESSIONID = id;
+      window.localStorage.setItem("sessionID", SESSIONID);
+    },
 
-var login = function () {
-  navigator.id.getVerifiedEmail(function (assertion) {
-      if (assertion) {
-        // This code will be invoked once the user has successfully
-        // selected an email address they control to sign in with.
-        DNode.connect(function (remote) {
-            remote.signin(assertion, function(cred) {
-                if (cred.status == "okay") {
-                  $("#whom").text(cred.email);
-                  $("#reason").text("");
-                } else {
-                  $("#whom").text(cred.status);
-                  $("#reason").text(cred.reason);
-                }
-              }, function (err) {
-                $("#whom").text("RPC failed");
-              });
-          });
-      } else {
-        // something went wrong!  the user isn't logged in.
-        $("#whom").text("Nobody.");
+  }).connect(function (remote) {
+      
+      if (window.localStorage) {
+        remote.resumeSession(window.localStorage.getItem("sessionID"));
       }
+
+      $("#signin").click(function () {
+          $("#whom").text("Answer this:");
+          navigator.id.getVerifiedEmail(function (assertion) {
+              $("#whom").text("Thanks");
+              if (assertion) {
+                $("#whom").text("Verifying");
+                // This code will be invoked once the user has successfully
+                // selected an email address they control to sign in with.
+                remote.verify(assertion);
+              } else {
+                // something went wrong!  the user isn't logged in.
+                $("#whom").text("Nobody.");
+              }
+            });
+        });
+
+      $("#signout").click(function () {
+          remote.signout();
+        });
+
     });
-};
 
 
 </script>
+
+<style>
+    #signin, #signout { display: none; }
+</style>
+
 </head>
 
 <body>
 <h1 id=whom>Who are you?</h1>
 <p id=reason></p>
-<button  id="login">
-<img src="https://browserid.org/i/sign_in_red.png" alt="Sign in">
+<button  id="signin">
+    <img src="https://browserid.org/i/sign_in_red.png" alt="Sign in">
 </button>
+<button id="signout">Sign out</button>
 </body>
