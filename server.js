@@ -1,11 +1,18 @@
+var redis = require('redis');
+var store = redis.createClient();
+
+store.on("error", function (err) {
+    console.log("Redis error " + err);
+  });
+
+var SESSION_EXPIRE = 60 * 60 * 24 * 30;  // sessions last a month!
+
 var express = require('express');
 var dnode = require('dnode');
 
 var server = express.createServer();
 
 server.use(express.static(__dirname));
-
-SESSIONS = {}
 
 dnode(function (client, connection) {
 
@@ -21,13 +28,17 @@ dnode(function (client, connection) {
       });
 
     this.resumeSession = function (id) {
-      if (SESSIONS[id]) {
-        connection.session = id;
-        client.session(id, SESSIONS[id]);
-      } else {
-        client.noSession("You need to sign on in");
-      }
-    };
+      var key = "session:" + id + ":email";
+      store.get(key, function (err, email) {
+          if (email) {
+            store.expire(key, SESSION_EXPIRE);  // Restart session timeout
+            connection.session = id;
+            client.session(id, email);
+          } else {
+            client.noSession("You need to sign on in");
+          }
+        });
+    }
 
     this.verify = function (assertion, callback) {
       verify_identity(assertion, function(response) {
@@ -38,7 +49,9 @@ dnode(function (client, connection) {
             hash.update(response.email);
             hash.update(''+Math.random()); // >:(
             connection.session = hash.digest('base64');
-            SESSIONS[connection.session] = response.email;
+            var key = "session:"+connection.session+":email";
+            store.set(key, response.email);
+            store.expire(key, SESSION_EXPIRE);
             client.session(connection.session, response.email);
             console.log("Identity verified", connection.session, response.email);
           } else {
@@ -48,7 +61,7 @@ dnode(function (client, connection) {
     };
 
     this.signout = function () {
-      delete SESSIONS[connection.session];
+      store.del("session:" + connection.session + ":email", redis.print);
       client.noSession("Signed out");
     }
 
@@ -64,7 +77,8 @@ function verify_identity(assertion, callback) {
 
   var data = querystring.stringify({
       assertion: assertion,
-      audience: "localhost:9095"});//"pool-71-116-103-166.snfcca.dsl-w.verizon.net"});//"home.grumdrig.org"});//"grumdrig.com"});
+      audience: "localhost:9095"
+    });
 
   var opts = {
     host: "browserid.org",
