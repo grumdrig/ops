@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<head><title>RPG Ops</title>
+<head><title>Least Favorite Beer</title>
 <script src="https://browserid.org/include.js"></script>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js">
   </script>
@@ -10,37 +10,38 @@ var SESSIONID;
 
 DNode({
     
-    noSession: function (complaint) {
-      $('#signin').show();
-      $('#signout').hide();
-      $('#whom').text(complaint || "You need to sign in, pal");
-    },
-      
     session : function (id, email) {
-      $('#signout').show();
-      $('#signin :visible').slideUp();
+      $('#userinfo').show();
+      $('#signin').hide();
       $('#whom').text(email);
       SESSIONID = id;
       window.localStorage.setItem("sessionID", SESSIONID);
+      $('#form').show();
+      $('#info').hide();
     },
 
+    noSession: function (complaint) {
+      $('#signin').show();
+      $('#userinfo').hide();
+      $('#whom').text(complaint || "You need to sign in, pal");
+      $('#form').hide();
+      $('#info').show();
+    },
+
+    beer: function (beer) {
+      $('#beer').val(beer || "");
+    }
+      
   }).connect(function (remote) {
       
-      if (window.localStorage) {
+      if (window.localStorage)
         remote.resumeSession(window.localStorage.getItem("sessionID"));
-      }
 
       $("#signin").click(function () {
-          $("#whom").text("Answer this:");
           navigator.id.getVerifiedEmail(function (assertion) {
-              $("#whom").text("Thanks");
               if (assertion) {
-                $("#whom").text("Verifying");
-                // This code will be invoked once the user has successfully
-                // selected an email address they control to sign in with.
                 remote.verify(assertion);
               } else {
-                // something went wrong!  the user isn't logged in.
                 $("#whom").text("Nobody.");
               }
             });
@@ -48,6 +49,13 @@ DNode({
 
       $("#signout").click(function () {
           remote.signout();
+          $("#beer").val("");
+        });
+
+      $("#beer").change(function (e) {
+          var that = $(this);
+          remote.beer(that.val());
+          that.fadeOut('fast', function () { that.fadeIn('fast'); });
         });
 
     });
@@ -55,17 +63,30 @@ DNode({
 
 </script>
 
-<style>
-    #signin, #signout { display: none; }
-</style>
-
 </head>
+  
+<body style="text-align:center;margin:0">
 
-<body>
-<h1 id=whom>Who are you?</h1>
-<p id=reason></p>
-<button  id="signin">
-    <img src="https://browserid.org/i/sign_in_red.png" alt="Sign in">
-</button>
-<button id="signout">Sign out</button>
+<div id="wrapper" style="width:980px;margin:0 auto">
+<div id="topbar" style="width:980px;height:1em;background-color:#ccf;padding:1ex">
+  <div style="float:left;">Least Favorite Beer Dot Com</div>
+  <div style="float:right;valign:top">
+    <button id="signin" style="display:none">Sign in</button>
+    <span id="userinfo" style="display:none">
+      <span id="whom"></span>
+      <button id="signout">Sign out</button>
+    </span>
+  </div>
+</div>
+
+<div id="content" style="text-align:left">
+  <div id="info">
+    <p>Sign in to store the name of your least favorite beer right here.
+  </div>
+  <div id="form">
+    <p>What's your least favorite beer? You can keep track of it here.
+    <p><input type="text" id="beer"></input>
+</div>
+
+</div>
 </body>

@@ -1,31 +1,15 @@
 var redis = require('redis');
 var store = redis.createClient();
+store.on("error", function (err) {  console.log("Redis error " + err);  });
 
-store.on("error", function (err) {
-    console.log("Redis error " + err);
-  });
+var express = require('express');
+var server = express.createServer();
+server.use(express.static(__dirname));
 
 var SESSION_EXPIRE = 60 * 60 * 24 * 30;  // sessions last a month!
 
-var express = require('express');
 var dnode = require('dnode');
-
-var server = express.createServer();
-
-server.use(express.static(__dirname));
-
 dnode(function (client, connection) {
-
-    connection.on('request', function (req) {
-        console.log("REQUEST");
-      });
-    
-    connection.on('ready', function () {
-        console.log("CLIENT");
-        console.dir(client);
-        console.log("CONN");
-        console.dir(''+connection);
-      });
 
     this.resumeSession = function (id) {
       var key = "session:" + id + ":email";
@@ -33,7 +17,10 @@ dnode(function (client, connection) {
           if (email) {
             store.expire(key, SESSION_EXPIRE);  // Restart session timeout
             connection.session = id;
+            connection.user = email;
             client.session(id, email);
+            console.log("Resuming session", id.substr(0,8), "for", email);
+            sendBeer();
           } else {
             client.noSession("You need to sign on in");
           }
@@ -47,13 +34,17 @@ dnode(function (client, connection) {
             var hash = require("crypto").createHash("sha256");
             hash.update("secret that doesn't belong on github");
             hash.update(response.email);
-            hash.update(''+Math.random()); // >:(
+            hash.update(''+Math.random());
+            hash.update(''+Date.now());
             connection.session = hash.digest('base64');
-            var key = "session:"+connection.session+":email";
-            store.set(key, response.email);
+            connection.user = response.email;
+            var key = "session:" + connection.session + ":email";
+            store.set(key, connection.user);
             store.expire(key, SESSION_EXPIRE);
-            client.session(connection.session, response.email);
-            console.log("Identity verified", connection.session, response.email);
+            client.session(connection.session, connection.user);
+            console.log("Starting session", connection.session.substr(0,8), 
+                        "for", connection.user);
+            sendBeer();
           } else {
             client.noSession("That's not legit");
           }
@@ -61,8 +52,22 @@ dnode(function (client, connection) {
     };
 
     this.signout = function () {
+      console.log("Ending session", connection.session.substr(0,8));
       store.del("session:" + connection.session + ":email", redis.print);
+      delete connection.session;
+      delete connection.user;
       client.noSession("Signed out");
+    }
+
+    this.beer = function (beer) {
+      console.log("Beer for", connection.user, beer);
+      store.set("user:" + connection.user + ":beer", beer);
+    }
+
+    function sendBeer() {
+      store.get("user:" + connection.user + ":beer", function (err, beer) {
+          client.beer(beer);
+        });
     }
 
   }).listen(server);
