@@ -1,0 +1,64 @@
+* {
+  font-family: verdana;
+  font-size: 14px;
+}
+
+#wrapper {
+  width: 980px;
+  margin: 0 auto;
+}
+
+#topbar {
+  width: 980px;
+  height: 1em;
+  padding: 1ex 0;
+  font-family: Verdana;
+  border-bottom: solid 1px silver;
+  font-size: 18px;
+}
+
+#title {
+  float: left;
+  font-size: 18px;
+}
+
+table {
+  border-collapse: separate;
+  margin-left: 2ex;
+}
+
+td, th {
+  font-family: Verdana, sans-serif;
+  font-size: 13px;
+  border-collapse: separate;
+}
+
+tr.month th {
+  margin-top: 1ex;
+  border-collapse: separate;
+  font-weight: normal;
+  border-spacing: 3ex;
+  border-top: solid 8px white;
+  border-bottom: solid 1px silver;
+}
+
+td { 
+  text-align: center; 
+}
+
+tr.dow th {
+  font-weight: normal;
+  font-size: 11px;
+  color: gray;
+}
+
+td.d {
+  color: #22a;
+  border: solid 1px #88d;
+  background-color: #e5e5ff;
+}
+
+table { 
+  display: inline-block;
+  vertical-align: top; 
+}
